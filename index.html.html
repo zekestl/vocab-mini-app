@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Vocab Tutor Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        .container { max-width: 500px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .menu-btn {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .menu-btn:active { background: rgba(255,255,255,0.3); }
+        .hidden { display: none; }
+        button {
+            background: #4ade80;
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+        }
+        .back-btn { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Main View -->
+    <div id="mainView">
+        <div class="header">
+            <h1>🎓 Vocab Tutor</h1>
+            <p>Tap a feature below</p>
+        </div>
+        <div class="card">
+            <div style="font-size: 48px;">1</div>
+            <div>Level 1 · 45/100 XP</div>
+        </div>
+        <div class="menu-grid">
+            <button class="menu-btn" onclick="showView('spelling')">✏️ Spelling</button>
+            <button class="menu-btn" onclick="showView('pronounce')">🔊 Pronounce</button>
+            <button class="menu-btn" onclick="showView('leaderboard')">🏆 Leaderboard</button>
+            <button class="menu-btn" onclick="showView('categories')">📂 Categories</button>
+            <button class="menu-btn" onclick="showView('export')">📤 Export</button>
+            <button class="menu-btn" onclick="showView('health')">🩺 Health</button>
+        </div>
+    </div>
+
+    <!-- Spelling View -->
+    <div id="spellingView" class="hidden">
+        <div class="header"><h1>✏️ Spelling Test</h1></div>
+        <div class="card">
+            <p id="spellWordDisplay">Click "Hear Word"</p>
+            <button onclick="playSpellingWord()">🔊 Hear Word</button>
+            <input type="text" id="spellingInput" placeholder="Type here...">
+            <button onclick="checkSpelling()">Submit</button>
+            <button class="back-btn" onclick="showView('main')">← Back</button>
+        </div>
+    </div>
+
+    <!-- Pronunciation View -->
+    <div id="pronounceView" class="hidden">
+        <div class="header"><h1>🔊 Pronunciation</h1></div>
+        <div class="card">
+            <p>Type a word and press Pronounce</p>
+            <input type="text" id="pronounceInput" placeholder="e.g., ephemeral">
+            <button onclick="pronounceWord()">🔊 Pronounce</button>
+            <button class="back-btn" onclick="showView('main')">← Back</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard View -->
+    <div id="leaderboardView" class="hidden">
+        <div class="header"><h1>🏆 Leaderboard</h1></div>
+        <div class="card">
+            <p>🥇 You - 450 XP</p>
+            <p>🥈 Alex - 380 XP</p>
+            <p>🥉 Maria - 320 XP</p>
+            <button class="back-btn" onclick="showView('main')">← Back</button>
+        </div>
+    </div>
+
+    <!-- Categories View -->
+    <div id="categoriesView" class="hidden">
+        <div class="header"><h1>📂 Categories</h1></div>
+        <div class="card">
+            <p>💼 Business</p>
+            <p>🔬 Science</p>
+            <p>📚 Literature</p>
+            <button class="back-btn" onclick="showView('main')">← Back</button>
+        </div>
+    </div>
+
+    <!-- Export View -->
+    <div id="exportView" class="hidden">
+        <div class="header"><h1>📤 Export Data</h1></div>
+        <div class="card">
+            <p>Download your vocabulary</p>
+            <button onclick="exportData()">📥 Download CSV</button>
+            <button class="back-btn" onclick="showView('main')">← Back</button>
+        </div>
+    </div>
+
+    <!-- Health View -->
+    <div id="healthView" class="hidden">
+        <div class="header"><h1>🩺 Health</h1></div>
+        <div class="card">
+            <p>✅ Bot Online</p>
+            <p>📚 Hybrid Mode</p>
+            <button class="back-btn" onclick="showView('main')">← Back</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    // Simple view switcher
+    function showView(viewId) {
+        document.querySelectorAll('[id$="View"]').forEach(v => v.classList.add('hidden'));
+        document.getElementById(viewId + 'View').classList.remove('hidden');
+    }
+
+    // Spelling
+    let currentWord = '';
+    const words = ['ephemeral', 'serendipity', 'eloquent', 'ubiquitous', 'pragmatic'];
+    
+    function playSpellingWord() {
+        currentWord = words[Math.floor(Math.random() * words.length)];
+        document.getElementById('spellWordDisplay').innerText = 'Listen carefully...';
+        if (window.speechSynthesis) {
+            const u = new SpeechSynthesisUtterance(currentWord);
+            u.lang = 'en-US';
+            speechSynthesis.speak(u);
+        } else {
+            alert('Speech not supported. The word is: ' + currentWord);
+        }
+    }
+    
+    function checkSpelling() {
+        const input = document.getElementById('spellingInput').value.trim().toLowerCase();
+        if (input === currentWord) {
+            alert('✅ Correct!');
+        } else {
+            alert('❌ Wrong. Correct: ' + currentWord);
+        }
+        document.getElementById('spellingInput').value = '';
+    }
+
+    // Pronunciation
+    function pronounceWord() {
+        const word = document.getElementById('pronounceInput').value.trim();
+        if (!word) return;
+        if (window.speechSynthesis) {
+            const u = new SpeechSynthesisUtterance(word);
+            u.lang = 'en-US';
+            speechSynthesis.speak(u);
+        } else {
+            alert('Speech not supported. Use /pronounce in chat.');
+        }
+    }
+
+    // Export
+    function exportData() {
+        const csv = "Word,Category\nephemeral,General\nserendipity,General";
+        const blob = new Blob([csv], {type: 'text/csv'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'vocab.csv';
+        a.click();
+    }
+
+    // Telegram back button handling
+    tg.BackButton.onClick(() => showView('main'));
+</script>
+</body>
+</html>
